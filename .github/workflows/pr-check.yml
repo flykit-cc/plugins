@@ -32,11 +32,12 @@ jobs:
           fail=0
           while IFS= read -r row; do
             name=$(jq -r '.name' <<<"$row")
-            repo=$(jq -r '.source.repo // empty' <<<"$row")
+            # source is either {repo: owner/name} or {url: https://github.com/owner/name.git}
+            repo=$(jq -r '.source.repo // (.source.url // "" | capture("github\\.com/(?<r>[^/]+/[^/]+?)(\\.git)?$").r) // empty' <<<"$row")
             declared=$(jq -r '.version // empty' <<<"$row")
 
             if [ -z "$repo" ]; then
-              echo "::error file=.claude-plugin/marketplace.json::'$name' has no source.repo"
+              echo "::error file=.claude-plugin/marketplace.json::'$name' has no source.repo or github.com source.url"
               fail=$((fail+1)); continue
             fi
             if [ -z "$declared" ]; then
